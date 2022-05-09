@@ -1,4 +1,4 @@
-# API Metered Billing[ 🚧 Under constant development 👷🔧️🚧 ]
+# API Metered Billing[ 🚧 Under development 👷🔧️🚧 ]
 
 ### Background
 
