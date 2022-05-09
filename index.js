@@ -1,17 +1,32 @@
+/**
+ ** Stripe Metered Billing API endpoint
+
+ * author: lzm17_
+
+ * courtesy: Fireship.io
+
+ * - [1]  Implement a basic API endpoint
+ * - [2] Subscribe a customer to a recurring subscription in Stripe
+ * - [3] Create custom API keys to authenticate requests to the API
+ * - [4] Record and report API usage to Stripe
+ */
+
 const express = require('express');
-const app = express();
+const { append } = require('express/lib/response');
 require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-const stripe = require('stripe')(process.env.SECRET_KEY);
+app = express();
+router = express.Router();
 
-const PORT = process.env.PORT || process.env.APP_PORT;
+//router configurations
+router.use(express.json());
 
-//app configurations
-app.use(express.json());
-
+// path => /api/v1/billing
+app.use('/api/v1/billing', router);
 
 // Make a call to the API
-app.get('/api', async (req, res) => {
+router.get('/init', async (req, res) => {
 
     const { apiKey } = req.query.apiKey;
 
@@ -19,14 +34,14 @@ app.get('/api', async (req, res) => {
     // TODO validate that the API key is valid
     if (!apiKey) {
         // bad request
-        res.status(400).send({error: 'Invalid apiKey'});
+        res.status(400).send({ error: 'Invalid apiKey' });
     }
 
     const hashAPIKey = hashAPIKey(apiKey);
     const customer = customers[customerId];
 
-    if (!customer|| !customer.active) {
-        res.status(403).send({error: 'Not authorized'});
+    if (!customer || !customer.active) {
+        res.status(403).send({ error: 'Not authorized' });
     } else {
         // Record usage with Stripe billing
         const record = await stripe.subscriptionItems.createUsageRecord(
@@ -39,15 +54,12 @@ app.get('/api', async (req, res) => {
         );
     }
 
-
-   
-
     res.send({ data: "🔥🔥🔥🔥🔥🔥", usage: record });
 });
 
 // POST http://localhost:8080/checkout
 // Create a stripe Checkout session to create a customer and subscribe them to a plan
-app.post('/checkout', async (req, res) => {
+router.post('/checkout', async (req, res) => {
     const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -56,16 +68,16 @@ app.post('/checkout', async (req, res) => {
                 price: 'price_1KrWC2LCMFZ1sVLXvxgX161a'
             },
         ],
-        success_url: 'http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url: 'http://localhost:8080/error'
+        success_url: 'http://localhost:8080/api/v1/billing/success?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url: 'http://localhost:8080/api/v1/billing/error'
     });
 
     res.send(session);
 });
 
 // POST http://localhost:8080/checkout
-// listen for webhooks from stripe when important events happen
-app.post('/webhook', async (req, res) => {
+// listen for webhooks from stripe when important events hrouteren
+router.post('/webhook', async (req, res) => {
     let data;
     let eventType;
     // check if webhook signing is configured
@@ -129,7 +141,7 @@ app.post('/webhook', async (req, res) => {
 });
 
 // TODO: Implement a real database
-// reverse mapping of stripe to API keyconst 
+// reverse routering of stripe to API key
 const customers = {
     // stripeCustomerID : data
     stripeCustomerId: {
@@ -165,6 +177,8 @@ function hashAPIKey(apiKey) {
     const hashedAPIKey = createHash('md5').update(apiKey).digest('hex');
     return hashAPIKey
 }
+
+const PORT = process.env.PORT || 8080;
 
 // listening for incoming requests on port.
 app.listen(PORT, () => {
